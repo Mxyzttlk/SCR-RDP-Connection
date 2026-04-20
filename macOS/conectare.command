@@ -291,8 +291,44 @@ echo ""
 # Deschide fisierul RDP cu aplicatia asociata (Microsoft Remote Desktop / Windows App)
 open "$RDP_FILE"
 
-echo "   Dupa ce inchizi fereastra RDP, revino aici si apasa Enter."
+# ========================================================
+# ASTEPTARE STABILIRE CONEXIUNE RDP
+# ========================================================
+echo "   Astept stabilirea conexiunii..."
+TIMEOUT_CONNECT=60
+ELAPSED=0
+while ! lsof -nP -iTCP:"$PORT_LOCAL" -sTCP:ESTABLISHED >/dev/null 2>&1; do
+    sleep 1
+    ELAPSED=$((ELAPSED + 1))
+    if [ "$ELAPSED" -ge "$TIMEOUT_CONNECT" ]; then
+        echo "   Conexiunea nu s-a stabilit in $TIMEOUT_CONNECT secunde."
+        echo "   Scriptul se inchide."
+        exit 1
+    fi
+done
+
+echo "   Conectat la $NUME."
+echo "   Scriptul se va inchide automat la deconectare."
 echo ""
-read -p "Apasa Enter dupa ce ai inchis fereastra RDP..."
+
+# ========================================================
+# MONITORIZARE SESIUNE ACTIVA
+# Se iese cand nu mai exista conexiuni ESTABLISHED pe port
+# ========================================================
+while lsof -nP -iTCP:"$PORT_LOCAL" -sTCP:ESTABLISHED >/dev/null 2>&1; do
+    sleep 2
+done
+
+echo "   Sesiunea RDP s-a incheiat."
+
+# ========================================================
+# AUTO-INCHIDERE FEREASTRA TERMINAL (dupa cleanup)
+# ========================================================
+# Planificam inchiderea ferestrei Terminal dupa ce scriptul iese
+# (trap-ul EXIT ruleaza inainte, deci tunelul se opreste corect)
+(
+    sleep 3
+    osascript -e 'tell application "Terminal" to close (every window whose name contains "conectare.command")' >/dev/null 2>&1
+) &
 
 exit 0
