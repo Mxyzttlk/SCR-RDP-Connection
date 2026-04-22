@@ -60,11 +60,15 @@ setup_automat() {
         curl -L "$DOWNLOAD_URL" -o "$SCRIPT_DIR/cloudflared.tgz"
         tar -xzf "$SCRIPT_DIR/cloudflared.tgz" -C "$SCRIPT_DIR"
         rm "$SCRIPT_DIR/cloudflared.tgz"
-        chmod +x "$CLOUDFLARED"
-        echo "   cloudflared instalat."
+        echo "   cloudflared descarcat."
     else
         echo "   cloudflared deja prezent."
     fi
+
+    # Asigurare permisiuni si eliminare quarantine (si pentru cloudflared
+    # transferat din Windows care nu pastreaza bitul de executie)
+    chmod +x "$CLOUDFLARED" 2>/dev/null
+    xattr -d com.apple.quarantine "$CLOUDFLARED" 2>/dev/null
 
     # Verificare Microsoft Remote Desktop / Windows App
     echo ""
@@ -158,6 +162,14 @@ if [ ! -f "$CLOUDFLARED" ]; then
     read -p "Apasa Enter pentru a iesi..."
     exit 1
 fi
+
+# Asigurare permisiuni si eliminare quarantine la fiecare rulare
+# (protejeaza in cazul in care bitul de executie s-a pierdut dupa
+# transferuri/copy din Windows sau Finder a re-aplicat quarantine)
+if [ ! -x "$CLOUDFLARED" ]; then
+    chmod +x "$CLOUDFLARED" 2>/dev/null
+fi
+xattr -d com.apple.quarantine "$CLOUDFLARED" 2>/dev/null
 
 if [ ! -f "$CONFIG" ]; then
     echo ""

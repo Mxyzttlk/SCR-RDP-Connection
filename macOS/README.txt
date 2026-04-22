@@ -32,21 +32,39 @@ PASUL 2 - Prima lansare (Gatekeeper)
 -------------------------------------
 
   La PRIMUL double-click pe conectare.command, macOS
-  POSIBIL sa blocheze executia cu mesajul:
+  POSIBIL sa blocheze executia cu unul din mesajele:
 
     "conectare.command cannot be opened because it is
      from an unidentified developer"
+  sau
+    "Apple nu a putut verifica daca nu contine malware"
 
   Acest mesaj nu apare la toata lumea - depinde de
   setarile Gatekeeper si de metoda de transfer a
   folderului. Daca nu apare, sari peste acest pas.
 
-  SOLUTIE (daca apare):
+  SOLUTIA RAPIDA (daca apare o singura data):
     1. Click DREAPTA pe conectare.command
     2. Selecteaza "Open" din meniu
     3. In dialog apare acum butonul "Open" - apasa-l
 
-  De la al doilea double-click incolo nu mai apare.
+  SOLUTIA PERMANENTA (daca avertizarea reapare de
+  fiecare data, chiar si pentru cloudflared):
+
+    Deschide Terminal si ruleaza - o SINGURA DATA -
+    pe folderul intreg (inlocuieste CALEA/CATRE/FOLDER
+    cu calea reala):
+
+      xattr -dr com.apple.quarantine "CALEA/CATRE/FOLDER"
+      chmod +x "CALEA/CATRE/FOLDER/conectare.command"
+      chmod +x "CALEA/CATRE/FOLDER/cloudflared"
+
+    Tip rapid pentru cale: dupa ce scrii xattr -dr
+    com.apple.quarantine , trage folderul direct in
+    Terminal si calea se completeaza automat.
+
+    Dupa aceste 3 comenzi, double-click va functiona
+    normal de acum incolo.
 
 
 PASUL 3 - Setup automat (intra in joc scriptul)
