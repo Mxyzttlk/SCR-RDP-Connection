@@ -138,6 +138,16 @@ PASUL 4 - Prima conectare RDP (permisiuni macOS)
        Deschide Terminal in folder si ruleaza:
          chmod +x conectare.command cloudflared
 
+  "bad interpreter: /bin/bash^M: no such file or directory"
+    -> Fisierul are line endings Windows (CRLF) in loc de
+       Unix (LF). Se intampla cand scriptul e transferat
+       prin Google Drive, email sau alte canale care pas-
+       treaza fisierul byte-cu-byte (Windows il salveaza
+       cu CRLF, bash pe Mac nu-l intelege).
+       Fix rapid - in Terminal, in folderul scriptului:
+         sed -i '' 's/\r$//' conectare.command
+         sed -i '' 's/\r$//' config.ini
+
   "Unable to connect" / Error 0x204 in Windows App
     -> Tunelul cloudflared nu e gata inca
     -> Asteapta 10 secunde si relanseaza din Windows App
