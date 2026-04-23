@@ -4,6 +4,15 @@ Title Conectare Securizata Cloudflare RDP
 color 0A
 
 :: ========================================================
+:: CURATARE PROCESE ZOMBIE RAMASE DE LA RULARI ANTERIOARE
+:: Daca userul a inchis CMD fara sa ajunga la CLEANUP
+:: (ex: close button X, pana de curent, browser inchis la
+:: autentificarea Cloudflare), cloudflared ramane rezident
+:: si ocupa portul. Il omoram acum ca sa incepem curat.
+:: ========================================================
+taskkill /f /im cloudflared.exe >nul 2>&1
+
+:: ========================================================
 :: VERIFICARE FISIERE NECESARE
 :: ========================================================
 if not exist "%~dp0cloudflared.exe" (

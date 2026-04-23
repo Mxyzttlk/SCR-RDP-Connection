@@ -8,6 +8,15 @@ CONFIG="$SCRIPT_DIR/config.ini"
 CLOUDFLARED="$SCRIPT_DIR/cloudflared"
 
 # ========================================================
+# CURATARE PROCESE ZOMBIE RAMASE DE LA RULARI ANTERIOARE
+# Daca userul a inchis Terminal-ul brusc (Cmd+Q, Force Quit)
+# sau browser-ul in timpul autentificarii Cloudflare, cloud-
+# flared poate ramane rezident si sa ocupe portul. Il omoram
+# acum ca sa incepem curat.
+# ========================================================
+pkill -f "cloudflared access" >/dev/null 2>&1
+
+# ========================================================
 # SETUP AUTOMAT LA PRIMA RULARE
 # ========================================================
 setup_automat() {
