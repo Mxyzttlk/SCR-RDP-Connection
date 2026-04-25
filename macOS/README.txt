@@ -24,8 +24,7 @@ din motive de securitate macOS.
 PASUL 1 - Copiere folder pe Mac
 --------------------------------
 
-  Copiaza intreg folderul "macOS" oriunde pe Mac
-  (ex: Desktop, Documents, Applications).
+  Copiaza intreg folderul "macOS" in Applications in folder creat "LocalScripts".
 
 
 PASUL 2 - Prima lansare (Gatekeeper)
@@ -66,6 +65,16 @@ PASUL 2 - Prima lansare (Gatekeeper)
     Dupa aceste 3 comenzi, double-click va functiona
     normal de acum incolo.
 
+In caz daca apare asa mesaj:
+  "bad interpreter: /bin/bash^M: no such file or directory"
+    -> Fisierul are line endings Windows (CRLF) in loc de
+       Unix (LF). Se intampla cand scriptul e transferat
+       prin Google Drive, email sau alte canale care pas-
+       treaza fisierul byte-cu-byte (Windows il salveaza
+       cu CRLF, bash pe Mac nu-l intelege).
+       Fix rapid - in Terminal, in folderul scriptului:
+         sed -i '' 's/\r$//' conectare.command
+         sed -i '' 's/\r$//' config.ini
 
 PASUL 3 - Setup automat (intra in joc scriptul)
 ------------------------------------------------
@@ -96,13 +105,25 @@ PASUL 3 - Setup automat (intra in joc scriptul)
 PASUL 4 - Prima conectare RDP (permisiuni macOS)
 -------------------------------------------------
 
-  La prima incercare de conectare, macOS poate afisa:
+  La prima incercare de conectare, macOS poate afisa
+  pana la doua dialoguri de permisiune:
 
+  4.1) Local Network
     "Windows App would like to find and connect to
      devices on your local network"
+    -> Apasa ALLOW.
 
-  Apasa ALLOW. Dialog-ul apare o singura data, apoi
-  permisiunea e memorata permanent.
+  4.2) Accessibility (NUMAI daca PASS este setat in
+       config.ini pentru auto-completarea parolei)
+    "Terminal (sau iTerm) would like to control your
+     computer using accessibility features"
+    -> Apasa "Open System Settings"
+    -> In Privacy & Security > Accessibility, activeaza
+       toggle-ul de langa Terminal
+    -> Inchide scriptul si relanseaza-l
+
+  Ambele dialoguri apar O SINGURA DATA. Permisiunile
+  sunt memorate permanent.
 
 
 --------------------------------------------------------
@@ -111,11 +132,13 @@ PASUL 4 - Prima conectare RDP (permisiuni macOS)
 
   1. Double-click pe conectare.command
   2. Alegi PC-ul din meniu (1, 2, 3...)
-  3. Introduci parola contului remote cand cere Windows App
-  4. Te conectezi - scriptul se ocupa de tunel si WOL
+  3. Te conectezi - scriptul se ocupa de tunel si WOL
 
-  Nota: username-ul e completat automat din config.ini.
-  Tot ce trebuie sa introduci la conectare e parola.
+  Username-ul e pre-completat din config.ini. Daca PASS
+  e setat in config, parola se completeaza automat in
+  ~1 secunda dupa ce apare dialogul "Enter Your
+  Credentials" (necesita permisiune Accessibility - vezi
+  Pasul 4.2). Daca PASS e gol, introduci parola manual.
 
 
 --------------------------------------------------------
@@ -138,16 +161,6 @@ PASUL 4 - Prima conectare RDP (permisiuni macOS)
        Deschide Terminal in folder si ruleaza:
          chmod +x conectare.command cloudflared
 
-  "bad interpreter: /bin/bash^M: no such file or directory"
-    -> Fisierul are line endings Windows (CRLF) in loc de
-       Unix (LF). Se intampla cand scriptul e transferat
-       prin Google Drive, email sau alte canale care pas-
-       treaza fisierul byte-cu-byte (Windows il salveaza
-       cu CRLF, bash pe Mac nu-l intelege).
-       Fix rapid - in Terminal, in folderul scriptului:
-         sed -i '' 's/\r$//' conectare.command
-         sed -i '' 's/\r$//' config.ini
-
   "Unable to connect" / Error 0x204 in Windows App
     -> Tunelul cloudflared nu e gata inca
     -> Asteapta 10 secunde si relanseaza din Windows App
@@ -159,5 +172,15 @@ PASUL 4 - Prima conectare RDP (permisiuni macOS)
 
   "brew: command not found" in mijlocul setup-ului
     -> Inchide Terminal si relanseaza scriptul
+
+  Parola nu se completeaza automat (PASS setat in config)
+    -> Verifica permisiunea Accessibility pentru Terminal:
+       System Settings > Privacy & Security > Accessibility
+    -> Pentru diagnostic, dupa o incercare de conectare,
+       deschide Terminal si ruleaza:
+         cat /tmp/scr_rdp_debug.log
+       Log-ul arata ce se intampla pas cu pas (cand a
+       fost detectat dialog-ul, cand a fost completata
+       parola, eventuale erori).
 
 ========================================================

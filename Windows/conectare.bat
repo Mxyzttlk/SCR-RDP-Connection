@@ -101,6 +101,16 @@ for /f "tokens=1,2 delims==" %%a in ('findstr "MAC" "%~dp0config.ini"') do (
     set /a CNT+=1
     set "MAC_!CNT!=%%b"
 )
+set "CNT=0"
+for /f "tokens=1,2 delims==" %%a in ('findstr /B "USER=" "%~dp0config.ini"') do (
+    set /a CNT+=1
+    set "USER_!CNT!=%%b"
+)
+set "CNT=0"
+for /f "tokens=1,2 delims==" %%a in ('findstr /B "PASS=" "%~dp0config.ini"') do (
+    set /a CNT+=1
+    set "PASS_!CNT!=%%b"
+)
 
 echo.
 choice /c 123456789 /n /m "Alegeti optiunea (1-%INDEX%): "
@@ -117,6 +127,8 @@ set "PORT_LOCAL=!PORT_%SELECTIE%!"
 set "IP_LOCAL=!IP_%SELECTIE%!"
 set "MAC=!MAC_%SELECTIE%!"
 set "NUME=!NUME_%SELECTIE%!"
+set "USER=!USER_%SELECTIE%!"
+set "PASS=!PASS_%SELECTIE%!"
 
 cls
 echo ========================================================
@@ -195,6 +207,19 @@ echo.
 echo 3. Se lanseaza Remote Desktop...
 echo.
 
+:: ========================================================
+:: CACHE CREDENTIALE TEMPORAR (DACA PASS E SETAT IN CONFIG)
+:: cmdkey adauga in Credential Manager pentru TERMSRV/IP,
+:: mstsc le foloseste automat. La CLEANUP sunt sterse.
+:: Daca PASS e gol, scriptul nu cache-uieste nimic - mstsc
+:: foloseste ce e deja in Credential Manager sau cere parola.
+:: ========================================================
+set "CRED_CACHED=0"
+if not "%PASS%"=="" if not "%USER%"=="" (
+    cmdkey /generic:TERMSRV/%IP_LOCAL% /user:%USER% /pass:%PASS% >nul 2>&1
+    set "CRED_CACHED=1"
+)
+
 :: Lansare directa prin parametru - fara fisier RDP
 :: Evita fereastra de avertisment de securitate
 mstsc /v:%IP_LOCAL%:%PORT_LOCAL%
@@ -213,6 +238,10 @@ timeout /t 2 >nul
 :: ========================================================
 :CLEANUP
 echo.
+:: Stergere credentiale cache-uite temporar (daca au fost adaugate)
+if "%CRED_CACHED%"=="1" (
+    cmdkey /delete:TERMSRV/%IP_LOCAL% >nul 2>&1
+)
 echo Se opreste tunelul securizat...
 taskkill /f /im cloudflared.exe >nul 2>&1
 echo Deconectat cu succes.
