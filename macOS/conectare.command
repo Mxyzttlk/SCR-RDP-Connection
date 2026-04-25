@@ -204,6 +204,7 @@ declare -a HOSTNAME_LIST
 declare -a PORT_LIST
 declare -a MAC_LIST
 declare -a USER_LIST
+declare -a PASS_LIST
 
 while IFS= read -r line || [ -n "$line" ]; do
     # Curatare CR de la finaluri de linii Windows
@@ -220,6 +221,8 @@ while IFS= read -r line || [ -n "$line" ]; do
         MAC_LIST[$INDEX]="${BASH_REMATCH[1]}"
     elif [[ "$line" =~ ^USER=(.+)$ ]]; then
         USER_LIST[$INDEX]="${BASH_REMATCH[1]}"
+    elif [[ "$line" =~ ^PASS=(.+)$ ]]; then
+        PASS_LIST[$INDEX]="${BASH_REMATCH[1]}"
     fi
 done < "$CONFIG"
 
@@ -238,6 +241,7 @@ PORT_LOCAL="${PORT_LIST[$SELECTIE]}"
 MAC="${MAC_LIST[$SELECTIE]}"
 NUME="${NUME_LIST[$SELECTIE]}"
 USER_RDP="${USER_LIST[$SELECTIE]}"
+PASS_RDP="${PASS_LIST[$SELECTIE]}"
 
 clear
 echo "========================================================"
@@ -311,6 +315,74 @@ echo ""
 
 # Deschide fisierul RDP cu aplicatia asociata (Microsoft Remote Desktop / Windows App)
 open "$RDP_FILE"
+
+# ========================================================
+# AUTO-TASTARE PAROLA IN DIALOGUL DE CREDENTIALE
+# Daca PASS este setat in config, lansam in background un
+# AppleScript care asteapta dialogul "Enter Your Credentials"
+# si tastarea automata parola + Return.
+#
+# NECESAR: permisiune Accessibility pentru Terminal
+# (System Settings > Privacy & Security > Accessibility >
+#  toggle pe Terminal). La prima rulare macOS va cere asta.
+# ========================================================
+if [ -n "$PASS_RDP" ]; then
+    DEBUG_LOG="/tmp/scr_rdp_debug.log"
+    echo "[$(date '+%H:%M:%S.%N')] Auto-fill pornit" > "$DEBUG_LOG"
+    (
+        osascript 2>>"$DEBUG_LOG" <<APPLESCRIPT_END >>"$DEBUG_LOG"
+on run
+    set targetPass to "$PASS_RDP"
+    set timeWaited to 0
+    set maxWait to 90
+
+    tell application "System Events"
+        repeat while not (exists process "Windows App") and timeWaited < 30
+            delay 0.2
+            set timeWaited to timeWaited + 0.2
+        end repeat
+        if not (exists process "Windows App") then
+            log "Process Windows App nu apare in 30s"
+            return
+        end if
+        log "Process Windows App detectat la " & timeWaited & "s"
+
+        tell process "Windows App"
+            repeat while timeWaited < maxWait
+                delay 0.2
+                set timeWaited to timeWaited + 0.2
+                try
+                    if exists (button "Continue" of sheet 1 of window 1) then
+                        -- Verificare suplimentara: dialogul real are
+                        -- minimum 2 text fields (username + parola).
+                        -- Filtreaza false positives.
+                        set fieldCount to 0
+                        try
+                            set fieldCount to count of text fields of sheet 1 of window 1
+                        end try
+
+                        if fieldCount >= 2 then
+                            log "Dialog real detectat la " & timeWaited & "s (text fields: " & fieldCount & ")"
+                            set frontmost to true
+                            delay 0.2
+                            set value of text field 2 of sheet 1 of window 1 to targetPass
+                            delay 0.2
+                            click button "Continue" of sheet 1 of window 1
+                            log "Auto-fill complet la " & timeWaited & "s"
+                            return
+                        else
+                            log "Fals pozitiv la " & timeWaited & "s (text fields: " & fieldCount & ") - continui polling"
+                        end if
+                    end if
+                end try
+            end repeat
+        end tell
+    end tell
+    log "Timeout dupa " & maxWait & "s"
+end run
+APPLESCRIPT_END
+    ) &
+fi
 
 # ========================================================
 # ASTEPTARE STABILIRE CONEXIUNE RDP
